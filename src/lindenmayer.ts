@@ -112,7 +112,7 @@ export function construct(a: Alphabet, r: Rule[], s: string, n: number) {
 }
 
 export function init() {
-  const { result, segments, description, min, max } = lindenmayer();
+  const { segments, min, max } = lindenmayer();
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(
@@ -132,11 +132,8 @@ export function init() {
 
   const material = new THREE.LineBasicMaterial({ color: 0xffffff });
 
-  const colors = [];
-
   let tSegments: THREE.Line[] = [];
 
-  let i = 0;
   segments.forEach((s) => {
     const positions: THREE.Vector3[] = [];
 

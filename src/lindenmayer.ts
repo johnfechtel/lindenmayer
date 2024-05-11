@@ -116,13 +116,25 @@ export function init() {
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(
-    90,
+    50,
     window.innerWidth / window.innerHeight,
-    1,
-    500
+    0.1,
+    1000
   );
 
-  camera.position.set((max.x + min.x) / 2, (max.y, min.y), 1000);
+  const c = new THREE.Vector3((max.x + min.x) / 2, (max.y + min.y) / 2, 0);
+
+  const padding = 10;
+  const halfFov = camera.fov / 2;
+
+  const maxWH =
+    Math.max(Math.abs(max.x - min.x), Math.abs(max.y - min.y)) / 2 + padding;
+
+  const z = maxWH / Math.tan(halfFov * 0.0174533);
+
+  camera.position.set(c.x, c.y, z);
+
+  console.log(JSON.stringify({ maxWH, z, halfFov }));
 
   const renderer = new THREE.WebGLRenderer();
   renderer.setSize(window.innerWidth, window.innerHeight);
@@ -130,12 +142,26 @@ export function init() {
 
   const controls = new OrbitControls(camera, renderer.domElement);
 
-  const material = new THREE.LineBasicMaterial({ color: 0xffffff });
+  controls.enableRotate = false;
+  controls.position0.set(c.x, c.y, z);
+  controls.target.set(c.x, c.y, 0);
+  controls.update();
 
   let tSegments: THREE.Line[] = [];
 
-  segments.forEach((s) => {
+  const startColor = new THREE.Color(Math.random() * 0xffffff);
+  const endColor = new THREE.Color(Math.random() * 0xffffff);
+
+  for (let i = 0; i < segments.length; i++) {
+    const s = segments[i];
+
     const positions: THREE.Vector3[] = [];
+
+    const alpha = i / segments.length;
+
+    const color = new THREE.Color().lerpColors(startColor, endColor, alpha);
+
+    const material = new THREE.LineBasicMaterial({ color });
 
     positions.push(new THREE.Vector3(s.start.x, s.start.y, 0));
     positions.push(new THREE.Vector3(s.end.x, s.end.y, 0));
@@ -144,19 +170,45 @@ export function init() {
     const line = new THREE.Line(geometry, material);
 
     tSegments.push(line);
+  }
 
-    console.log(JSON.stringify(s));
+  const bL = new THREE.Vector3(min.x, min.y, 0);
+  const tL = new THREE.Vector3(min.x, max.y, 0);
+  const tR = new THREE.Vector3(max.x, max.y, 0);
+  const bR = new THREE.Vector3(max.x, min.y, 0);
+
+  const vectors = [bL, tL, tR, bR];
+  const points = new THREE.Points(
+    new THREE.BufferGeometry().setFromPoints(vectors)
+  );
+
+  const crosshairSize = 1;
+  const crossHairMaterial = new THREE.LineBasicMaterial({ color: 0xffffff });
+  vectors.forEach((v) => {
+    const posVert = [
+      new THREE.Vector3(v.x - crosshairSize, v.y, 0),
+      new THREE.Vector3(v.x + crosshairSize, v.y, 0),
+    ];
+    const posHoriz = [
+      new THREE.Vector3(v.x, v.y - crosshairSize, 0),
+      new THREE.Vector3(v.x, v.y + crosshairSize, 0),
+    ];
+
+    const vertical = new THREE.BufferGeometry().setFromPoints(posVert);
+    const horizontal = new THREE.BufferGeometry().setFromPoints(posHoriz);
+
+    const lineVertical = new THREE.Line(vertical, crossHairMaterial);
+    const lineHorizontal = new THREE.Line(horizontal, crossHairMaterial);
+
+    scene.add(lineVertical);
+    scene.add(lineHorizontal);
   });
 
-  camera.position.z = 5;
-  camera.lookAt(0, 0, 0);
+  scene.add(points);
 
   let idx = 0;
   function animate() {
     requestAnimationFrame(animate);
-
-    // required if controls.enableDamping or controls.autoRotate are set to true
-    controls.update();
 
     renderer.render(scene, camera);
 

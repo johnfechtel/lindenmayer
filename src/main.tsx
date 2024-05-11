@@ -1,4 +1,4 @@
-import { lindenmayer } from "./lindenmayer.js";
+import { init } from "./lindenmayer.js";
 import "./index.css";
 
-lindenmayer();
+init();
